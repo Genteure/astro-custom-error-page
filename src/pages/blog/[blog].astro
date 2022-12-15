@@ -1,0 +1,57 @@
+---
+// not using getStaticPaths on purpose as we are using this in SSR mode, not SSG
+// mockFetch simulates a fetch from an API server
+async function mockFetch(id: string): Promise<{
+    content?: string;
+    notfound: boolean;
+}> {
+    switch (id) {
+        case "content":
+            return {
+                content: "my data from api server",
+                notfound: false,
+            };
+        case "fail":
+            throw new Error("api server is offline");
+        default:
+            return {
+                notfound: true,
+            };
+    }
+}
+
+const { blog = "" } = Astro.params;
+console.log("rendering blog post", blog);
+
+let data: {
+    content?: string;
+    notfound: boolean;
+};
+
+try {
+    data = await mockFetch(blog);
+
+    if (data.notfound) {
+        return new Response(
+            "not my beautiful 404 page, just a simple string :(",
+            { status: 404 }
+        );
+    }
+} catch (error) {
+    return new Response("api server is offline", { status: 502 });
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Blog: {blog}</title>
+    </head>
+    <body>
+        <h1>Blog: {blog}</h1>
+        <p>{data.content}</p>
+    </body>
+</html>
